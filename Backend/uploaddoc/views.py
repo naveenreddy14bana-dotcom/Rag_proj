@@ -2,10 +2,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from .models import Document
+from .rag import answer_question
 from .serializers import DocumentSerializer
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class DocumentUploadAPIView(APIView):
 
     def post(self, request):
@@ -71,3 +75,19 @@ class DocumentDeleteAPIView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ChatAPIView(APIView):
+
+    def post(self, request):
+        question = str(request.data.get("question", "")).strip()
+
+        if not question:
+            return Response(
+                {"message": "Question is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = answer_question(question)
+        return Response(result, status=status.HTTP_200_OK)
